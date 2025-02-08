@@ -1,0 +1,11 @@
+dajoh52087@nike4s.com
+dajoh52087@nike4s.comQWE
+
+postgresql://neondb_owner:npg_Yo2suQ8qLZri@ep-long-art-a9x7ap49-pooler.gwc.azure.neon.tech/neondb?sslmode=require
+
+ep-long-art-a9x7ap49-pooler.gwc.azure.neon.tech
+neondb
+neondb_owner
+npg_Yo2suQ8qLZri
+
+

@@ -27,6 +27,13 @@ builder.Services.AddScoped<IImageHulk, ImageHulk>();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+//Перевірка інфування папки для збереження файлів
+string uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploading");
+if (!Directory.Exists(uploadPath))
+{
+    Directory.CreateDirectory(uploadPath);
+}
+
 builder.Services.AddScoped<IImageHulk, ImageHulk>();
 
 builder.Services.AddAutoMapper(typeof(MapProfile));

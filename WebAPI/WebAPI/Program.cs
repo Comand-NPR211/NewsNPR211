@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using System;
+using WebAlina.Services;
 using WebAPI.Data;
+using WebAPI.Interfaces;
+using WebAPI.Mapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,8 +18,27 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+builder = WebApplication.CreateBuilder(args);
 
+// Реєстрація вашого сервісу IImageHulk
+builder.Services.AddScoped<IImageHulk, ImageHulk>();
 
+// Додавання інших сервісів
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+//Перевірка інфування папки для збереження файлів
+string uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploading");
+if (!Directory.Exists(uploadPath))
+{
+    Directory.CreateDirectory(uploadPath);
+}
+
+builder.Services.AddScoped<IImageHulk, ImageHulk>();
+
+builder.Services.AddAutoMapper(typeof(MapProfile));
+
+builder.Services.AddControllersWithViews();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

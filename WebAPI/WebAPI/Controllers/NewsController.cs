@@ -51,6 +51,23 @@ namespace WebAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromForm] NewsCreateViewModel model)
         {
+
+            if (string.IsNullOrWhiteSpace(model.Category))
+            {
+                return BadRequest("Категорія не може бути порожньою");
+            }
+
+            // Шукаємо категорію, якщо її немає - створюємо
+            var category = await _context.Categories.FirstOrDefaultAsync(c => c.Name == model.Category);
+            if (category == null)
+            {
+                category = new Category { Name = model.Category };
+                _context.Categories.Add(category);
+                await _context.SaveChangesAsync(); // Зберігаємо нову категорію
+            }
+
+
+
             string imageName = string.Empty;
 
             if (model.ImageFile != null)
@@ -59,9 +76,20 @@ namespace WebAPI.Controllers
             }
             var entity = _mapper.Map<NewsEntity>(model);
             entity.ImageUrl = imageName;
+
+            entity.CategoryId = category.Id; // Встановлюємо ID категорії
+            entity.Category = null; // Уникаємо циклу в JSON
+
             _context.News.Add(entity);
-            _context.SaveChanges();
-            return Ok(entity);
+
+            //_context.SaveChanges();
+            await _context.SaveChangesAsync();
+
+            //return Ok(entity);
+            return Ok(new { entity.Id, entity.Title, entity.CategoryId }); // Уникаємо рекурсивного JSON
+
+
+
         }
 
         [HttpDelete("{id}")]
@@ -120,6 +148,20 @@ namespace WebAPI.Controllers
             // Повертаємо успішний результат
             return Ok(news);
         }
+
+        [HttpGet("by-category/{categoryId}")]
+        public async Task<IActionResult> GetNewsByCategory(int categoryId)
+        {
+            var news = await _context.News
+                .Where(n => n.CategoryId == categoryId)
+                .ToListAsync();
+
+            if (!news.Any())
+                return NotFound("Новин у цій категорії немає");
+
+            return Ok(_mapper.Map<List<NewsItemViewModel>>(news));
+        }
+
 
     }
 }

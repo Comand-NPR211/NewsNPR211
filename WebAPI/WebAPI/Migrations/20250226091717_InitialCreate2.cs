@@ -7,11 +7,24 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace WebAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class AddContentToNewsTable : Migration
+    public partial class InitialCreate2 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "Categories",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Categories", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "news_entities",
                 columns: table => new
@@ -24,7 +37,7 @@ namespace WebAPI.Migrations
                     ImageUrl = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    Category = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    CategoryId = table.Column<int>(type: "integer", nullable: false),
                     Author = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     Tags = table.Column<string>(type: "text", nullable: true),
                     IsPublished = table.Column<bool>(type: "boolean", nullable: false),
@@ -35,7 +48,18 @@ namespace WebAPI.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_news_entities", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_news_entities_Categories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "Categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_news_entities_CategoryId",
+                table: "news_entities",
+                column: "CategoryId");
         }
 
         /// <inheritdoc />
@@ -43,6 +67,9 @@ namespace WebAPI.Migrations
         {
             migrationBuilder.DropTable(
                 name: "news_entities");
+
+            migrationBuilder.DropTable(
+                name: "Categories");
         }
     }
 }

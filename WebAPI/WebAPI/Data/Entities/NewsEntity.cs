@@ -27,9 +27,16 @@ namespace WebAPI.Data.Entities
 
         public DateTime? UpdatedAt { get; set; }
 
+        //[Required]
+        //[MaxLength(100)]
+        //public string Category { get; set; } = string.Empty;
+
         [Required]
-        [MaxLength(100)]
-        public string Category { get; set; } = string.Empty;
+        public int CategoryId { get; set; }
+
+        // 🔹 Додаємо навігаційну властивість для зв’язку з категоріями
+        [ForeignKey("CategoryId")]
+        public Category Category { get; set; } = null!;
 
         [Required]
         [MaxLength(150)]

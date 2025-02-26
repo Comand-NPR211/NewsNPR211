@@ -149,18 +149,33 @@ namespace WebAPI.Controllers
             return Ok(news);
         }
 
-        [HttpGet("by-category/{categoryId}")]
+        //[HttpGet("by-category/{categoryId}")]
+        //public async Task<IActionResult> GetNewsByCategory(int categoryId)
+        //{
+        //    var news = await _context.News
+        //        .Where(n => n.CategoryId == categoryId)
+        //        .ToListAsync();
+
+        //    if (!news.Any())
+        //        return NotFound("Новин у цій категорії немає");
+
+        //    return Ok(_mapper.Map<List<NewsItemViewModel>>(news));
+        //}
+
+        [HttpGet("by-category/{categoryId}")] // ефективніший варіант
         public async Task<IActionResult> GetNewsByCategory(int categoryId)
         {
             var news = await _context.News
                 .Where(n => n.CategoryId == categoryId)
+                .ProjectTo<NewsItemViewModel>(_mapper.ConfigurationProvider)  // Виконуємо мапінг одразу у запиті
                 .ToListAsync();
 
             if (!news.Any())
                 return NotFound("Новин у цій категорії немає");
 
-            return Ok(_mapper.Map<List<NewsItemViewModel>>(news));
+            return Ok(news);
         }
+
 
 
     }

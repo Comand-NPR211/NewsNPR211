@@ -66,6 +66,8 @@ namespace WebAPI.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        //додає роль до існуючих ролей, можливі кілька ролей для одного юзера
+        //для перевірки - авторизуватись на свагері через логін і отриманим при логіні токеном на кнопці авторизації
         [HttpPost("assign-role")]    // призначення/додавання ролі  юзера після реєстрації 
         public async Task<IActionResult> AssignRole([FromBody] RoleAssignModel model)
         {
@@ -80,6 +82,7 @@ namespace WebAPI.Controllers
             return Ok("Role assigned successfully");
         }
 
+        //стирає існуючі ролі і додає нову роль
         [HttpPost("change-role")]
         public async Task<IActionResult> ChangeUserRole([FromBody] RoleAssignModel model)
         {

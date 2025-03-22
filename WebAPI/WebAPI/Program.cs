@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+п»їusing Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -9,43 +9,62 @@ using WebAPI.Data;
 using WebAPI.Data.Entities;
 using WebAPI.Interfaces;
 using WebAPI.Mapper;
+using WebAPI.Middleware;
 using WebAPI.Services;
+using WebAPI.Middleware;
+//using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// **Вимкнення перевірки довжини ключа**
+// РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ Р»РѕРіСѓРІР°РЅРЅСЏ
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
+// **Р’РёРјРєРЅРµРЅРЅСЏ РїРµСЂРµРІС–СЂРєРё РґРѕРІР¶РёРЅРё РєР»СЋС‡Р°**
 AppContext.SetSwitch("Switch.Microsoft.IdentityModel.UnsafeRelaxHmacKeySizeValidation", true);
 
-// **Отримуємо рядок підключення до БД**
+// **РћС‚СЂРёРјСѓС”РјРѕ СЂСЏРґРѕРє РїС–РґРєР»СЋС‡РµРЅРЅСЏ РґРѕ Р‘Р”**
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// **Налаштування бази даних (PostgreSQL)**
+// **РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ Р±Р°Р·Рё РґР°РЅРёС… (PostgreSQL)**
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// **Реєстрація сервісу для роботи із зображеннями**
+// **Р РµС”СЃС‚СЂР°С†С–СЏ СЃРµСЂРІС–СЃСѓ РґР»СЏ СЂРѕР±РѕС‚Рё С–Р· Р·РѕР±СЂР°Р¶РµРЅРЅСЏРјРё**
 builder.Services.AddScoped<IImageHulk, ImageHulk>();
 
-// **Додаємо AutoMapper**
+// **Р”РѕРґР°С”РјРѕ AutoMapper**
 builder.Services.AddAutoMapper(typeof(MapProfile));
 
-// **Налаштовуємо Identity**
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+// **РќР°Р»Р°С€С‚РѕРІСѓС”РјРѕ Identity**
+//builder.Services.AddIdentity<ApplicationUser, IdentityRole>() // РїРѕРєРё СЃРєР°СЃРѕРІСѓС”РјРѕ Р±С–Р»СЊС€ Р¶РѕСЂСЃС‚РєС– РЅР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ РІРёРјРѕРіРё РґРѕ РїР°СЂРѕР»СЏ
+
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => //СЃС‚Р°РІРёРј РґРѕ РїР°СЂРѕР»СЏ РјРµРЅС€ Р¶РѕСЂСЃС‚РєС– РІРёРјРѕРіРё+СѓРЅС–РєР°Р»СЊРЅС–СЃС‚СЊ РјРµР№Р»Р° РЅРѕРІРіРѕРіРѕ СЋР·РµСЂР°
+{
+    options.User.RequireUniqueEmail = true; 
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 6;
+})
+
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
-// **JWT Налаштування**
+// **JWT РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ**
 var jwtKey = builder.Configuration["Jwt:Secret"];
 if (string.IsNullOrEmpty(jwtKey))
 {
     throw new Exception("JWT Secret is missing in appsettings.json");
 }
 
-// Лог для перевірки довжини ключа
+// Р›РѕРі РґР»СЏ РїРµСЂРµРІС–СЂРєРё РґРѕРІР¶РёРЅРё РєР»СЋС‡Р°
 var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 Console.WriteLine($"JWT Secret Length: {keyBytes.Length * 8} bits");
 
-// **Використовуємо звичайний ключ без додаткових змін**
+// **Р’РёРєРѕСЂРёСЃС‚РѕРІСѓС”РјРѕ Р·РІРёС‡Р°Р№РЅРёР№ РєР»СЋС‡ Р±РµР· РґРѕРґР°С‚РєРѕРІРёС… Р·РјС–РЅ**
 var signingKey = new SymmetricSecurityKey(keyBytes);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -60,15 +79,40 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuer = false,
             ValidateAudience = false
         };
+
+        // - РѕР±СЂРѕР±РєР° РїРѕРјРёР»РєРё РґР»СЏ Swagger (РЅРµ СЂРµРґС–СЂРµРєС‚, Р° 401)
+        options.Events = new JwtBearerEvents
+        {
+            //  Р›РћР“РЈР„РњРћ РџРћРњРР›РљР РџРђР РЎРРќР“РЈ / Р’РђР›Р†Р”РђР¦Р†Р‡ РўРћРљР•РќРђ
+            OnAuthenticationFailed = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogWarning("JWT authentication failed: {Error}", context.Exception.Message);
+                return Task.CompletedTask;
+            },
+
+            OnChallenge = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogWarning("Unauthorized access attempt. Token was missing or invalid.");
+
+                context.HandleResponse();// Р·Р°РїРѕР±С–РіР°С” СЂРµРґС–СЂРµРєС‚Сѓ
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                var result = System.Text.Json.JsonSerializer.Serialize(new { error = "Unauthorized access" });
+                return context.Response.WriteAsync(result);
+            }
+        };
+
     });
 
-// **Додаємо політику авторизації для ролей**
+// **Р”РѕРґР°С”РјРѕ РїРѕР»С–С‚РёРєСѓ Р°РІС‚РѕСЂРёР·Р°С†С–С— РґР»СЏ СЂРѕР»РµР№**
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
 });
 
-// **Налаштування CORS (якщо фронтенд буде окремо)**
+// **РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ CORS (СЏРєС‰Рѕ С„СЂРѕРЅС‚РµРЅРґ Р±СѓРґРµ РѕРєСЂРµРјРѕ)**
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -79,14 +123,14 @@ builder.Services.AddCors(options =>
     });
 });
 
-// **Перевірка існування папки для збереження файлів**
+// **РџРµСЂРµРІС–СЂРєР° С–СЃРЅСѓРІР°РЅРЅСЏ РїР°РїРєРё РґР»СЏ Р·Р±РµСЂРµР¶РµРЅРЅСЏ С„Р°Р№Р»С–РІ**
 string uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploading");
 if (!Directory.Exists(uploadPath))
 {
     Directory.CreateDirectory(uploadPath);
 }
 
-// **Налаштування JSON-серіалізації**
+// **РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ JSON-СЃРµСЂС–Р°Р»С–Р·Р°С†С–С—**
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
@@ -101,7 +145,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "WebAPI", Version = "v1" });
 
-    // Додаємо можливість авторизації через JWT
+    // Р”РѕРґР°С”РјРѕ РјРѕР¶Р»РёРІС–СЃС‚СЊ Р°РІС‚РѕСЂРёР·Р°С†С–С— С‡РµСЂРµР· JWT
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "Enter 'Bearer {your token here}'",
@@ -129,7 +173,10 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// **Ініціалізація ролей при старті програми**
+app.UseGlobalErrorHandler(); // РіР»РѕР±Р°Р»СЊРЅР° РѕР±СЂРѕР±РєР° РІРёРЅСЏС‚РєС–РІ
+
+
+// **Р†РЅС–С†С–Р°Р»С–Р·Р°С†С–СЏ СЂРѕР»РµР№ РїСЂРё СЃС‚Р°СЂС‚С– РїСЂРѕРіСЂР°РјРё**
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -139,20 +186,31 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error initializing roles: {ex.Message}");
+        //Console.WriteLine($"Error initializing roles: {ex.Message}");
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Error initializing roles");
     }
 }
 
-// **Налаштування Middleware**
+// **РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ Middleware**  
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowAll"); // Додаємо CORS
-app.UseAuthentication(); // Додаємо автентифікацію
-app.UseAuthorization();
+app.UseRouting();
+app.UseCors("AllowAll"); // Р”РѕРґР°С”РјРѕ CORS
+app.UseAuthentication(); // Р”РѕРґР°С”РјРѕ Р°РІС‚РµРЅС‚РёС„С–РєР°С†С–СЋ
+app.UseAuthorization(); 
 
 app.MapControllers();
+Console.WriteLine(" MapControllers() applied");
+
+var endpoints = app as IEndpointRouteBuilder;
+foreach (var endpoint in endpoints.DataSources.SelectMany(source => source.Endpoints))
+{
+    Console.WriteLine(endpoint.DisplayName);
+}
+
 app.Run();

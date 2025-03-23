@@ -164,7 +164,7 @@ namespace WebAPI.Controllers
                 return BadRequest("Failed to assign new role");
             }
 
-            _logger.LogInformation("🔄 Role changed for {Email} to {Role}", model.Email, model.Role); // 
+            _logger.LogInformation("Role changed for {Email} to {Role}", model.Email, model.Role); // 
             return Ok($"User {user.Email} now has role {model.Role}");
         }
 

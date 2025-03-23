@@ -8,6 +8,7 @@ using WebAPI.Models.News;
 using WebAPI.Interfaces;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using System.Text.Json;
 
 namespace WebAPI.Controllers
 {
@@ -27,12 +28,24 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<NewsEntity>>> GetNews()
+        public async Task<ActionResult<IEnumerable<NewsItemViewModel>>> GetNews()
+
         {
-            var news = await _context.News
-                .ProjectTo<NewsItemViewModel>(_mapper.ConfigurationProvider)
+            var newsEntities = await _context.News
+                .OrderByDescending(n => n.CreatedAt) //  Додаємо сортування по даті
                 .ToListAsync();
-            return Ok(news);
+            var result = newsEntities.Select(n => new NewsItemViewModel
+            {
+                Id = n.Id,
+                Title = n.Title,
+                Description = n.Description,
+                CreatedAt = n.CreatedAt,
+                ImageUrls = string.IsNullOrEmpty(n.ImageUrls)
+        ? new List<string>()
+        : JsonSerializer.Deserialize<List<string>>(n.ImageUrls) ?? new List<string>()
+            }).ToList();
+
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
@@ -66,16 +79,23 @@ namespace WebAPI.Controllers
                 await _context.SaveChangesAsync(); // Зберігаємо нову категорію
             }
 
+            // Зберігаємо всі зображення
 
-
-            string imageName = string.Empty;
-
-            if (model.ImageFile != null)
+            var imagePaths = new List<string>();
+            if (model.Images != null && model.Images.Any())
             {
-                imageName = await _imageHulk.Save(model.ImageFile);
+                foreach (var image in model.Images)
+                {
+                    var savedFileName = await _imageHulk.Save(image); // твоя логіка збереження
+                    imagePaths.Add(savedFileName);
+                }
             }
+
             var entity = _mapper.Map<NewsEntity>(model);
-            entity.ImageUrl = imageName;
+            //entity.ImageUrl = imageName;
+            entity.ImageUrls = JsonSerializer.Serialize(imagePaths); // -- Замість ImageUrl
+            entity.ImageUrl = null; // Опціонально: очищаємо старе поле
+
 
             entity.CategoryId = category.Id; // Встановлюємо ID категорії
             entity.Category = null; // Уникаємо циклу в JSON
@@ -87,8 +107,6 @@ namespace WebAPI.Controllers
 
             //return Ok(entity);
             return Ok(new { entity.Id, entity.Title, entity.CategoryId }); // Уникаємо рекурсивного JSON
-
-
 
         }
 

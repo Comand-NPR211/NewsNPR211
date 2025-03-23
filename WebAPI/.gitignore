@@ -11,6 +11,9 @@ WebTestSecirity/Web.config
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
+#test jpg files
+uploading/
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

@@ -12,6 +12,7 @@ using WebAPI.Mapper;
 using WebAPI.Middleware;
 using WebAPI.Services;
 using WebAPI.Middleware;
+using Microsoft.Extensions.FileProviders;
 //using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -123,17 +124,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-// **Перевірка існування папки для збереження файлів**
-string uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploading");
-if (!Directory.Exists(uploadPath))
-{
-    Directory.CreateDirectory(uploadPath);
-}
-
 // **Налаштування JSON-серіалізації**
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+    //options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+
 });
 
 // **Swagger**
@@ -198,6 +194,20 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// **Перевірка існування папки для збереження файлів**
+var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploading");
+if (!Directory.Exists(uploadPath))
+{
+    Directory.CreateDirectory(uploadPath); // 🔨 Створюємо папку якщо її немає
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadPath),
+    RequestPath = "/uploading"
+});
+
 
 app.UseRouting();
 app.UseCors("AllowAll"); // Додаємо CORS

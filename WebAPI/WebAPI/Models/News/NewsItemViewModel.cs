@@ -8,7 +8,9 @@ namespace WebAPI.Models.News
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
-        public string? ImageUrl { get; set; }
+        //public string? ImageUrl { get; set; }
+        public List<string> ImageUrls { get; set; } = new();
+
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public string Category { get; set; } = string.Empty;

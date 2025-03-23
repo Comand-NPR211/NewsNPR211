@@ -20,7 +20,8 @@ namespace WebAPI.Data.Entities
         [Required] // Повний текст новини (може бути у форматі HTML)
         public string Content { get; set; } = string.Empty;
 
-        public string? ImageUrl { get; set; }
+        public string? ImageUrl { get; set; } // старий підхід (показує 1 зображення)
+        public string? ImageUrls { get; set; } // новий підхід: JSON-рядок зі списком фото
 
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
